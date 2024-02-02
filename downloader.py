@@ -67,7 +67,8 @@ def main():
         "https://taquito.bunkr.ru",
         "https://milkshake.bunkr.ru",
         "https://fries.bunkr.ru",
-        "https://burger.bunkr.ru"
+        "https://burger.bunkr.ru",
+        "https://pizza.bunkr.ru"
     ]
 
     # Make a GET request to the main webpage
