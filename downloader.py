@@ -23,11 +23,14 @@ headers = {
 
 def extract_video_url(link):
     # Extract video name from the 'src' attribute of the 'img' tag
-    video_tag = link.find("img", class_="grid-images_box-img")
-    if video_tag and "src" in video_tag.attrs:
-        # Extract video name from the 'src' attribute and create a unique name
-        video_name = video_tag['src'].split('thumbs/')[1].split('.png')[0] + ".mp4"
-        return video_name
+    try:
+        video_tag = link.find("img", class_="grid-images_box-img")
+        if video_tag and "src" in video_tag.attrs:
+            video_name = video_tag['src'].split('thumbs/')[1].split('.png')[0] + ".mp4"
+            return video_name
+    except Exception as {e}:
+        print('Error whille extracting video_urll')
+        return None
     return None
 
 def download_video(video_url, download_directory, video_name):
@@ -35,13 +38,13 @@ def download_video(video_url, download_directory, video_name):
 
     if os.path.exists(save_path):
         print(f"Video already downloaded: {save_path}")
-        return True  # Indicate success
+        return True
 
     response = requests.get(video_url, headers=headers)
 
     if response.status_code == 404:
         print(f"Error: Video not found (404 Not Found) on server {video_url}")
-        return False  # Indicate failure
+        return False
     if response.status_code == 429:
         print("Error 429")
         time.sleep(5)
@@ -54,7 +57,7 @@ def download_video(video_url, download_directory, video_name):
 
     print(f"Downloaded video: {save_path}")
     response.close()
-    return True  # Indicate success
+    return True
 
 def main():
     if len(sys.argv) != 2:
@@ -71,18 +74,15 @@ def main():
         "https://pizza.bunkr.ru"
     ]
 
-    # Make a GET request to the main webpage
     main_response = requests.get(main_url, headers=headers)
     main_soup = BeautifulSoup(main_response.text, "html.parser")
 
-    # Find the <h1> element
     h1_element = main_soup.find("h1", class_="text-[24px] font-bold text-dark dark:text-white")
 
     if not h1_element:
         print("Error: Could not find the <h1> element on the webpage.")
         sys.exit(1)
 
-    # Find all video links on the webpage
     links = main_soup.find_all("div", class_="grid-images_box rounded-lg dark:bg-gray-200 xl:aspect-w-7 xl:aspect-h-8 p-2.5 border-2 display relative flex text-center")
 
     if not links:
@@ -101,7 +101,7 @@ def main():
                 try:
                     if download_video(full_video_url, download_directory, os.path.splitext(os.path.basename(video_url))[0]):
                         sleep(2)
-                        break  # Break if the video is successfully downloaded from any server
+                        break
                 except requests.exceptions.RequestException as e:
                     print(f"Error: {e}")
         else:
