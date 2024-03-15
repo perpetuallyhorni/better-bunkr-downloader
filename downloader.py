@@ -28,7 +28,7 @@ def extract_video_url(link):
         if video_tag and "src" in video_tag.attrs:
             video_name = video_tag['src'].split('thumbs/')[1].split('.png')[0] + ".mp4"
             return video_name
-    except Exception as {e}:
+    except Exception:
         print(f'Error whille extracting {link}')
         return None
     return None
