@@ -71,7 +71,8 @@ def main():
         "https://milkshake.bunkr.ru",
         "https://fries.bunkr.ru",
         "https://burger.bunkr.ru",
-        "https://pizza.bunkr.ru"
+        "https://pizza.bunkr.ru",
+        "https://meatballs.bunkr.ru"
     ]
 
     main_response = requests.get(main_url, headers=headers)
