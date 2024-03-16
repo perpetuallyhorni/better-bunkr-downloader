@@ -4,7 +4,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from time import sleep
-
+from tqdm import tqdm
 
 headers = {
     'Referer':
@@ -43,7 +43,7 @@ def download_video(video_url, download_directory, video_name):
     response = requests.get(video_url, headers=headers)
 
     if response.status_code == 404:
-        print(f"Error: Video not found (404 Not Found) on server {video_url}")
+        print(f"Video not found (404 Not Found) on server {video_url}")
         return False
     if response.status_code == 429:
         print("Error 429")
@@ -51,11 +51,15 @@ def download_video(video_url, download_directory, video_name):
         download_video(video_url=video_url,download_directory=download_directory,video_name=video_name)
 
     response.raise_for_status()
+    total_size = int(response.headers.get('content-length', 0))
+    block_size = 1024  # 1 KB
+    progress_bar = tqdm(total=total_size, unit='B', unit_scale=True)
 
     with open(save_path, "wb") as video_file:
-        video_file.write(response.content)
+        for data in response.iter_content(block_size):
+            video_file.write(data)
+            progress_bar.update(len(data))
 
-    print(f"Downloaded video: {save_path}")
     response.close()
     return True
 
