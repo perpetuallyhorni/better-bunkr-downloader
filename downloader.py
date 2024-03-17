@@ -33,24 +33,26 @@ def extract_video_url(link):
         return None
     return None
 
+
 def download_video(video_url, download_directory, video_name):
     save_path = os.path.join(download_directory, f"{video_name}.mp4")
 
     if os.path.exists(save_path):
         print(f"Video already downloaded: {save_path}")
         return True
-
-    response = requests.get(video_url, headers=headers)
+    os.system('cls')
+    response = requests.get(video_url, stream=True)
 
     if response.status_code == 404:
-        print(f"Video not found (404 Not Found) on server {video_url}")
+        print(f"Error: Video not found (404 Not Found) on server {video_url}")
         return False
     if response.status_code == 429:
         print("Error 429")
         time.sleep(5)
-        download_video(video_url=video_url,download_directory=download_directory,video_name=video_name)
+        download_video(video_url=video_url, download_directory=download_directory, video_name=video_name)
 
     response.raise_for_status()
+
     total_size = int(response.headers.get('content-length', 0))
     block_size = 1024  # 1 KB
     progress_bar = tqdm(total=total_size, unit='B', unit_scale=True)
@@ -60,8 +62,11 @@ def download_video(video_url, download_directory, video_name):
             video_file.write(data)
             progress_bar.update(len(data))
 
+    progress_bar.close()
+    print(f"Downloaded video: {save_path}")
     response.close()
     return True
+
 
 def main():
     if len(sys.argv) != 2:
@@ -76,7 +81,8 @@ def main():
         "https://fries.bunkr.ru",
         "https://burger.bunkr.ru",
         "https://pizza.bunkr.ru",
-        "https://meatballs.bunkr.ru"
+        "https://meatballs.bunkr.ru",
+        "https://kebab.bunkr.ru"
     ]
 
     main_response = requests.get(main_url, headers=headers)
@@ -102,7 +108,7 @@ def main():
         video_url = extract_video_url(link)
         if video_url:
             for server in servers:
-                full_video_url = f"{server}/{video_url}"
+                full_video_u    rl = f"{server}/{video_url}"
                 try:
                     if download_video(full_video_url, download_directory, os.path.splitext(os.path.basename(video_url))[0]):
                         sleep(2)
