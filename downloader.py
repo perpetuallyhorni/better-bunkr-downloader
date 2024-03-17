@@ -119,4 +119,7 @@ def main():
             print(f"Error: Could not find a valid server for video {video_url} in folder {folder_name}")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        exit(0)
