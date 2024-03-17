@@ -108,7 +108,7 @@ def main():
         video_url = extract_video_url(link)
         if video_url:
             for server in servers:
-                full_video_u    rl = f"{server}/{video_url}"
+                full_video_url = f"{server}/{video_url}"
                 try:
                     if download_video(full_video_url, download_directory, os.path.splitext(os.path.basename(video_url))[0]):
                         sleep(2)
