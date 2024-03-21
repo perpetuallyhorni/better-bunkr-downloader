@@ -1,3 +1,4 @@
+import pathlib
 import sys
 import os
 import time
@@ -5,6 +6,8 @@ import requests
 from bs4 import BeautifulSoup
 from time import sleep
 from tqdm import tqdm
+from http.client import IncompleteRead
+
 
 headers = {
     'Referer':
@@ -36,13 +39,11 @@ def extract_video_url(link):
 
 def download_video(video_url, download_directory, video_name):
     save_path = os.path.join(download_directory, f"{video_name}.mp4")
-
     if os.path.exists(save_path):
         print(f"Video already downloaded: {save_path}")
         return True
-    os.system('cls')
+    #os.system('cls')
     response = requests.get(video_url, stream=True)
-
     if response.status_code == 404:
         print(f"Error: Video not found (404 Not Found) on server {video_url}")
         return False
@@ -50,21 +51,28 @@ def download_video(video_url, download_directory, video_name):
         print("Error 429")
         time.sleep(5)
         download_video(video_url=video_url, download_directory=download_directory, video_name=video_name)
+    try:
+        response.raise_for_status()
 
-    response.raise_for_status()
+        total_size = int(response.headers.get('content-length', 0))
+        block_size = 1024  # 1 KB
+        progress_bar = tqdm(total=total_size, unit='B', unit_scale=True)
 
-    total_size = int(response.headers.get('content-length', 0))
-    block_size = 1024  # 1 KB
-    progress_bar = tqdm(total=total_size, unit='B', unit_scale=True)
+        with open(save_path, "wb") as video_file:
+            for data in response.iter_content(block_size):
+                video_file.write(data)
+                progress_bar.update(len(data))
 
-    with open(save_path, "wb") as video_file:
-        for data in response.iter_content(block_size):
-            video_file.write(data)
-            progress_bar.update(len(data))
-
-    progress_bar.close()
-    print(f"Downloaded video: {save_path}")
-    response.close()
+        progress_bar.close()
+        print(f"Downloaded video: {save_path}")
+        response.close()
+    except IncompleteRead as e:
+        print(e)
+        print(save_path)
+        if os.path.exists(save_path):
+            os.remove('"' + save_path + '"')
+            print("Partial download removed")
+        download_video(video_url=video_url, download_directory=download_directory, video_name=video_name)
     return True
 
 
