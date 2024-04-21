@@ -1,3 +1,4 @@
+import subprocess
 import pathlib
 import sys
 import os
@@ -7,7 +8,7 @@ from bs4 import BeautifulSoup
 from time import sleep
 from tqdm import tqdm
 from http.client import IncompleteRead
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 headers = {
     'Referer':
@@ -23,58 +24,63 @@ headers = {
     "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"}
 
-
-def extract_video_url(link):
-    # Extract video name from the 'src' attribute of the 'img' tag
+def extract_media_url(link):
+    # Extract media name from the thumbnail's 'src' attribute and format from the text content of the first <p> element
     try:
-        video_tag = link.find("img", class_="grid-images_box-img")
-        if video_tag and "src" in video_tag.attrs:
-            video_name = video_tag['src'].split('thumbs/')[1].split('.png')[0] + ".mp4"
-            return video_name
-    except Exception:
-        print(f'Error whille extracting {link}')
-        return None
-    return None
+        # Extract the media name and extension from the thumbnail image source
+        thumbnail_tag = link.find("img", class_="grid-images_box-img")
+        if thumbnail_tag and "src" in thumbnail_tag.attrs:
+            thumbnail_src = thumbnail_tag['src']
+            thumbnail_name = thumbnail_src.split('/')[-1]
+            base_name, thumbnail_ext = os.path.splitext(thumbnail_name)
 
+        # Extract the actual media format from the text content of the first <p> element
+        media_info_tag = link.find("div", class_="grid-images_box-txt")
+        if media_info_tag:
+            media_info_p = media_info_tag.find("p")
+            if media_info_p:
+                actual_ext = os.path.splitext(media_info_p.get_text(strip=True))[-1]
+                return base_name, actual_ext
+    except Exception as e:
+        print(f'Error while extracting media from link: {e}')
+        return None, None
+    return None, None
 
-def download_video(video_url, download_directory, video_name):
-    save_path = os.path.join(download_directory, f"{video_name}.mp4")
+def check_file_exists(url):
+    response = requests.head(url, headers=headers, allow_redirects=True)
+    return response.status_code == 200
+
+def download_media(server, base_name, actual_ext, download_directory):
+    file_name_with_actual_ext = f"{base_name}{actual_ext}"
+    full_media_url = f"{server}/{file_name_with_actual_ext}?download=true"
+    if check_file_exists(full_media_url):
+        return download_media_with_curl(full_media_url, download_directory, file_name_with_actual_ext)
+    return False
+
+def download_media_with_curl(media_url, download_directory, media_name):
+    save_path = os.path.join(download_directory, media_name)
     if os.path.exists(save_path):
-        print(f"Video already downloaded: {save_path}")
+        print(f"Media already downloaded: {save_path}")
         return True
-    #os.system('cls')
-    response = requests.get(video_url, stream=True)
-    if response.status_code == 404:
-        print(f"Error: Video not found (404 Not Found) on server {video_url}")
-        return False
-    if response.status_code == 429:
-        print("Error 429")
-        time.sleep(5)
-        download_video(video_url=video_url, download_directory=download_directory, video_name=video_name)
+
+    # Prepare the curl command
+    curl_command = ["curl", "-LO", media_url]
+
+    # Change the current working directory to the download directory
+    os.chdir(download_directory)
+
     try:
-        response.raise_for_status()
-
-        total_size = int(response.headers.get('content-length', 0))
-        block_size = 1024  # 1 KB
-        progress_bar = tqdm(total=total_size, unit='B', unit_scale=True)
-
-        with open(save_path, "wb") as video_file:
-            for data in response.iter_content(block_size):
-                video_file.write(data)
-                progress_bar.update(len(data))
-
-        progress_bar.close()
-        print(f"Downloaded video: {save_path}")
-        response.close()
-    except IncompleteRead as e:
-        print(e)
-        print(save_path)
+        # Execute the curl command with output redirected to DEVNULL
+        with open(os.devnull, 'wb') as devnull:
+            subprocess.run(curl_command, stdout=devnull, stderr=devnull, check=True)
+        print(f"Downloaded media: {save_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download: {e}")
         if os.path.exists(save_path):
-            os.remove('"' + save_path + '"')
+            os.remove(save_path)
             print("Partial download removed")
-        download_video(video_url=video_url, download_directory=download_directory, video_name=video_name)
+        return False
     return True
-
 
 def main():
     if len(sys.argv) != 2:
@@ -90,7 +96,14 @@ def main():
         "https://burger.bunkr.ru",
         "https://pizza.bunkr.ru",
         "https://meatballs.bunkr.ru",
-        "https://kebab.bunkr.ru"
+        "https://kebab.bunkr.ru",
+        "https://i-taquito.bunkr.ru",
+        "https://i-milkshake.bunkr.ru",
+        "https://i-fries.bunkr.ru",
+        "https://i-burger.bunkr.ru",
+        "https://i-pizza.bunkr.ru",
+        "https://i-meatballs.bunkr.ru",
+        "https://i-kebab.bunkr.ru"
     ]
 
     main_response = requests.get(main_url, headers=headers)
@@ -112,19 +125,28 @@ def main():
     download_directory = os.path.join(os.getcwd(), folder_name)
     os.makedirs(download_directory, exist_ok=True)
 
-    for link in links:
-        video_url = extract_video_url(link)
-        if video_url:
-            for server in servers:
-                full_video_url = f"{server}/{video_url}"
-                try:
-                    if download_video(full_video_url, download_directory, os.path.splitext(os.path.basename(video_url))[0]):
-                        sleep(2)
-                        break
-                except requests.exceptions.RequestException as e:
-                    print(f"Error: {e}")
-        else:
-            print(f"Error: Could not find a valid server for video {video_url} in folder {folder_name}")
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        # Create a list to hold the futures
+        future_to_media = {
+            executor.submit(download_media, server, base_name, actual_ext, download_directory): (server, base_name, actual_ext)
+            for link in links
+            for server in servers
+            for base_name, actual_ext in [extract_media_url(link)]
+            if base_name and actual_ext
+        }
+
+        # Iterate over the completed futures
+        for future in as_completed(future_to_media):
+            server, base_name, actual_ext = future_to_media[future]
+            file_name_with_actual_ext = f"{base_name}{actual_ext}"
+            try:
+                success = future.result()
+                if success:
+                    print(f"Successfully downloaded {file_name_with_actual_ext} from {server}")
+                    # Break out of the loop for this media since it's been downloaded
+                    break
+            except Exception as exc:
+                print(f"{file_name_with_actual_ext} generated an exception: {exc}")
 
 if __name__ == "__main__":
     try:
