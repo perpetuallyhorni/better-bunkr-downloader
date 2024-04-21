@@ -1,11 +1,20 @@
 # bunkr-downloader
-Downloads all videos from bunkr album
+Downloads all files contained in a bunkr album (16 parallel downloads)
 
-Tested on Windows 10 22H2, python 3.10.6
+Tested on archlinux with python 3.10.13
 
-Will not work on Linux
+Should work on binbows, Feel free to confirm or report otherwise. macOS support not guaranteed.
 
-simply run downloader.py with a system argument that is a link to the album
+### Prerequisites
 
-Example:
-  python downloader.py link.com/asdghf
+- cURL
+
+```
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Usage
+
+`python downloader.py https://bunkr.link.to/album`
