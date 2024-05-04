@@ -1,3 +1,6 @@
+# This is buggy and sometimes corrupts videos... I recommend using [CyberDrop-DL](https://github.com/Jules-WinnfieldX/CyberDropDownloader), however that doesn't download multiple files at once, so it can be much slower. Overall it should be faster to delete corrupted videos and retrigger a download with this than using Cyberdrop. I suspect the bug comes from downloading the same file multiple times but I don't have time to debug it. Feel free to open an issue/PR if you identify or fix the bug.
+
+
 # better-bunkr-downloader
 
 ### Forked from [Saertox/bunkr-downloader](https://github.com/Saertox/bunkr-downloader)
